@@ -692,9 +692,9 @@ export function App() {
   }, [playerAssignments]);
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
-      {/* FIXED TOP SECTION (ALWAYS VISIBLE, NEVER SCROLLS AWAY) */}
-      <div className="shrink-0 z-30 bg-slate-100 border-b border-slate-200 shadow-2xs">
+    <div className="min-h-screen w-full lg:h-screen lg:w-screen lg:overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
+      {/* TOP SECTION: Scrolls naturally on smartphone, fixed on desktop (lg:) */}
+      <div className="relative lg:shrink-0 lg:z-30 bg-slate-100 border-b border-slate-200 shadow-2xs">
         {/* Header */}
         <Header
           activeRole={activeRole}
@@ -729,7 +729,7 @@ export function App() {
         />
 
         {/* Live Auction Budget Ribbon for the active league's 10 teams + Role/Filter */}
-        <div className="max-w-[1700px] w-full mx-auto px-2 sm:px-3 pt-1 pb-1">
+        <div className="max-w-[1700px] w-full mx-auto px-1.5 sm:px-3 pt-0.5 sm:pt-1 pb-0.5 sm:pb-1">
           <LiveAuctionBudgetBar
             teams={leagueTeams}
             playerAssignments={playerAssignments}
@@ -742,14 +742,16 @@ export function App() {
           />
 
           {activeRole !== 'PLANNER' && (
-            <div className="mt-1 space-y-1">
-              {/* Hero role context banner */}
-              <RoleHeroBanner
-                activeRole={activeRole}
-                onSelectRole={(r) => handleRoleSelect(r)}
-                players={basePlayersList}
-                onOpenExcelModal={() => setIsExcelModalOpen(true)}
-              />
+            <div className="mt-0.5 sm:mt-1 space-y-0.5 sm:space-y-1">
+              {/* Hero role context banner (shown on tablet and desktop) */}
+              <div className="hidden sm:block">
+                <RoleHeroBanner
+                  activeRole={activeRole}
+                  onSelectRole={(r) => handleRoleSelect(r)}
+                  players={basePlayersList}
+                  onOpenExcelModal={() => setIsExcelModalOpen(true)}
+                />
+              </div>
 
               {/* Filter toolbar */}
               <FilterBar
@@ -767,8 +769,8 @@ export function App() {
         </div>
       </div>
 
-      {/* INDEPENDENT SCROLLABLE PLAYERS REGION (ONLY PLAYERS SCROLL) */}
-      <main className="flex-1 min-h-0 overflow-y-auto max-w-[1700px] w-full mx-auto px-2 sm:px-3 py-1 flex flex-col">
+      {/* PLAYERS REGION (Natural full scroll on smartphone, independent scroll on desktop) */}
+      <main className="flex-1 w-full lg:min-h-0 lg:overflow-y-auto max-w-[1700px] mx-auto px-1.5 sm:px-3 py-1 flex flex-col">
         {activeRole === 'PLANNER' ? (
           <AuctionPlanner
             targetPlayers={targetPlayersList}

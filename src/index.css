@@ -50,6 +50,34 @@
   scroll-behavior: smooth;
 }
 
+/* High visibility horizontal scrollbar for Live Auction Budget Bar on Mobile */
+.budget-horizontal-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #f59e0b #1e293b;
+}
+
+.budget-horizontal-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.budget-horizontal-scroll::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 4px;
+}
+
+.budget-horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #f59e0b;
+  border-radius: 4px;
+}
+
+.budget-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #fbbf24;
+}
+
 /* Table scroll container with both horizontal and vertical scrolling */
 .table-scroll-wrapper {
   overflow-x: auto;
