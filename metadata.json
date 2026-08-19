@@ -1,0 +1,6 @@
+{
+  "name": "FantaGuida 2026 - Guida Mercato & Rendimento Serie A",
+  "description": "App strategica per il mercato e l'asta del Fantacalcio con analisi rendimento stagione 2025/26, 60 giocatori per ruolo, nuovi arrivi dall'estero, quotazioni e simulatore d'asta.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

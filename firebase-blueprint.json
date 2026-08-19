@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "LeagueState": {
+      "title": "LeagueState",
+      "type": "object",
+      "description": "Global Fantacalcio database state including players, assignments, and teams",
+      "properties": {
+        "id": { "type": "string" },
+        "customPlayers": { "type": "array", "description": "List of imported players from Excel" },
+        "playerAssignments": { "type": "object", "description": "Map of playerId to teamId" },
+        "teams": { "type": "array", "description": "List of 10 league teams" },
+        "targetPlayerIds": { "type": "array", "description": "List of targeted player IDs" },
+        "budgetBase": { "type": "number", "description": "Budget base (500 or 1000)" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/league_state/{leagueId}": {
+      "entity": "LeagueState",
+      "description": "Shared Fantacalcio state across all connected devices and computers"
+    }
+  }
+}
