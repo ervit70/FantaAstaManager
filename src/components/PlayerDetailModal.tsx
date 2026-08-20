@@ -33,10 +33,10 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
   }[player.ruolo];
 
   const roleBadgeStyle = {
-    P: 'bg-amber-400/20 text-amber-300 border-amber-400/40',
-    D: 'bg-sky-400/20 text-sky-300 border-sky-400/40',
-    C: 'bg-emerald-400/20 text-emerald-300 border-emerald-400/40',
-    A: 'bg-rose-400/20 text-rose-300 border-rose-400/40',
+    P: 'bg-amber-500 text-slate-950 border-amber-400 font-black',
+    D: 'bg-emerald-600 text-white border-emerald-400 font-black',
+    C: 'bg-blue-600 text-white border-blue-400 font-black',
+    A: 'bg-red-600 text-white border-red-400 font-black',
   }[player.ruolo];
 
   return (

@@ -15,14 +15,15 @@ import {
   Sparkles,
   Trophy,
   Coins,
-  Layers
+  Layers,
+  Hash
 } from 'lucide-react';
 
 interface ExcelLeagueTabsProps {
   leagues: LeagueWorkspace[];
   activeLeagueId: string;
   onSelectLeague: (leagueId: string) => void;
-  onCreateLeague: (nome: string, budgetIniziale: number, coloreTab: string) => void;
+  onCreateLeague: (nome: string, budgetIniziale: number, coloreTab: string, teamCount?: number) => void;
   onRenameLeague: (leagueId: string, newName: string) => void;
   onChangeLeagueColor: (leagueId: string, newColor: string) => void;
   onDuplicateLeague: (leagueId: string, duplicateAssignments: boolean) => void;
@@ -47,6 +48,7 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
   const [newLeagueName, setNewLeagueName] = useState('');
   const [newLeagueBudget, setNewLeagueBudget] = useState<number>(700);
   const [newLeagueColor, setNewLeagueColor] = useState<string>(DEFAULT_TAB_COLORS[0]);
+  const [newLeagueTeamCount, setNewLeagueTeamCount] = useState<number>(10);
 
   // Context / Options menu state
   const [activeMenuLeagueId, setActiveMenuLeagueId] = useState<string | null>(null);
@@ -88,9 +90,10 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newLeagueName.trim() || `Lega ${leagues.length + 1}`;
-    onCreateLeague(name, Number(newLeagueBudget) || 700, newLeagueColor);
+    onCreateLeague(name, Number(newLeagueBudget) || 700, newLeagueColor, newLeagueTeamCount || 10);
     setIsNewLeagueModalOpen(false);
     setNewLeagueName('');
+    setNewLeagueTeamCount(10);
   };
 
   const handleScroll = (direction: 'left' | 'right') => {
@@ -118,7 +121,7 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
         <button
           type="button"
           onClick={() => handleScroll('left')}
-          className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0"
+          className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0 cursor-pointer"
           title="Scorri schede a sinistra"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -133,12 +136,8 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
             const isActive = league.id === activeLeagueId;
             const assignedCount = Object.keys(league.playerAssignments || {}).length;
             const tabColor = league.coloreTab || DEFAULT_TAB_COLORS[idx % DEFAULT_TAB_COLORS.length];
-
-            // Calculate total spent in this league
-            const totalSpent = (Object.values(league.playerPrices || {}) as number[]).reduce(
-              (a: number, b: number) => a + (Number(b) || 0),
-              0
-            );
+            const numTeams = league.teams?.length || league.numeroSquadre || 10;
+            const maxSlots = numTeams * 25;
 
             return (
               <div
@@ -197,8 +196,9 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
                           ? 'bg-slate-200 text-slate-800 border border-slate-300'
                           : 'bg-slate-900/60 text-slate-400 border border-slate-700'
                       }`}
+                      title={`${assignedCount} calciatori assegnati su ${maxSlots} posti (${numTeams} squadre)`}
                     >
-                      {assignedCount}/250
+                      {assignedCount}/{maxSlots}
                     </span>
 
                     {/* Options Menu Button */}
@@ -280,7 +280,7 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
                       onClick={() => {
                         if (
                           window.confirm(
-                            `Vuoi davvero azzerare gli acquisti e i prezzi di "${league.nome}"? I nomi delle 10 squadre rimarranno invariati.`
+                            `Vuoi davvero azzerare gli acquisti e i prezzi di "${league.nome}"? I nomi delle squadre rimarranno invariati.`
                           )
                         ) {
                           onResetLeagueRosters(league.id);
@@ -324,7 +324,7 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
         <button
           type="button"
           onClick={() => handleScroll('right')}
-          className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0"
+          className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0 cursor-pointer"
           title="Scorri schede a destra"
         >
           <ChevronRight className="w-3.5 h-3.5" />
@@ -336,11 +336,12 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
           onClick={() => {
             setNewLeagueName(`Lega ${leagues.length + 1}`);
             setNewLeagueBudget(700);
+            setNewLeagueTeamCount(10);
             setNewLeagueColor(DEFAULT_TAB_COLORS[leagues.length % DEFAULT_TAB_COLORS.length]);
             setIsNewLeagueModalOpen(true);
           }}
           className="flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
-          title="Crea un nuovo foglio di lavoro indipendente per un altro Fantacalcio (con 10 squadre e monte crediti autonomo)"
+          title="Crea un nuovo foglio di lavoro indipendente per un altro Fantacalcio (con squadre e monte crediti autonomo)"
         >
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Nuovo Foglio Lega</span>
@@ -364,14 +365,14 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
                     Crea Nuovo Foglio Fantacalcio
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Ambiente di lavoro autonomo con 10 squadre e budget separato
+                    Ambiente di lavoro autonomo con squadre e budget separato
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsNewLeagueModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer"
               >
                 ✕
               </button>
@@ -394,10 +395,34 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
                 />
               </div>
 
-              {/* Initial Budget for the 10 teams */}
+              {/* Number of Teams */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Numero Squadre Partecipanti:</span>
+                  <span className="text-[10px] text-blue-600 font-mono font-bold">Default: 10 Squadre</span>
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[8, 10, 12, 14].map((cnt) => (
+                    <button
+                      key={cnt}
+                      type="button"
+                      onClick={() => setNewLeagueTeamCount(cnt)}
+                      className={`py-1 px-2 rounded-lg font-mono font-bold text-center border cursor-pointer transition-all ${
+                        newLeagueTeamCount === cnt
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-300'
+                      }`}
+                    >
+                      {cnt} {cnt === 10 ? '⭐' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Initial Budget for each team */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  Monte Acquisti Iniziale per ciascuna delle 10 Squadre:
+                  Monte Acquisti Iniziale per ciascuna Squadra:
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[500, 700, 1000].map((b) => (

@@ -54,12 +54,12 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
     return [...teams].sort((a, b) => a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' }));
   }, [teams]);
 
-  // Role color palette
+  // Role color palette - Fantacalcio.it
   const roleBadgeStyle = {
-    P: 'bg-amber-100/90 text-amber-900 border-amber-300',
-    D: 'bg-sky-100/90 text-sky-900 border-sky-300',
-    C: 'bg-emerald-100/90 text-emerald-900 border-emerald-300',
-    A: 'bg-rose-100/90 text-rose-900 border-rose-300',
+    P: 'bg-amber-500 text-slate-950 border-amber-600',
+    D: 'bg-emerald-600 text-white border-emerald-700',
+    C: 'bg-blue-600 text-white border-blue-700',
+    A: 'bg-red-600 text-white border-red-700',
   }[player.ruolo];
 
   // Tier styling

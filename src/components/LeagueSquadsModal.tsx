@@ -140,7 +140,7 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
   // Early return strictly AFTER all hooks have executed
   if (!isOpen) return null;
 
-  // Export all 10 rosters to an organized Excel workbook
+  // Export all rosters to an organized Excel workbook
   const handleExportAllRostersExcel = () => {
     const workbook = XLSX.utils.book_new();
 
@@ -192,7 +192,7 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
       XLSX.utils.book_append_sheet(workbook, worksheet, cleanTitle || `Squadra ${t.numero}`);
     });
 
-    XLSX.writeFile(workbook, `Rose_10_Squadre_Fantacalcio_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Rose_${teams.length}_Squadre_Fantacalcio_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const renderRoleSection = (title: string, roleCode: Role, players: Player[], badgeBg: string) => {
@@ -277,7 +277,7 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
             </div>
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-extrabold tracking-tight flex items-center space-x-2 truncate">
-                <span>Rose Complete 10 Squadre Lega Fantacalcio</span>
+                <span>Rose Complete ({teams.length} Squadre) Lega Fantacalcio</span>
               </h2>
               <p className="text-[11px] text-slate-400 hidden sm:block truncate">
                 Composizione rose, prezzi d'acquisto, crediti spesi e residui in tempo reale.
@@ -289,10 +289,10 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
             <button
               onClick={handleExportAllRostersExcel}
               className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title="Scarica file Excel con i fogli delle 10 rose"
+              title="Scarica file Excel con i fogli delle rose"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Esporta 10 Rose Excel</span>
+              <span className="hidden md:inline">Esporta {teams.length} Rose Excel</span>
             </button>
             <button
               onClick={onClose}
@@ -303,12 +303,12 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
           </div>
         </div>
 
-        {/* 10 TEAMS SELECTOR: Optimized Responsive Grid & Scrollbar so ALL 10 teams are visible on laptops! */}
+        {/* TEAMS SELECTOR: Responsive Grid & Scrollbar */}
         <div className="bg-slate-100/90 border-b border-slate-200 p-2 sm:px-4 sm:py-2.5 shrink-0">
           <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold text-slate-600">
             <span className="flex items-center space-x-1">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
-              <span>Seleziona Squadra (Tutte le 10 Squadre della Lega):</span>
+              <span>Seleziona Squadra (Tutte le {teams.length} Squadre della Lega):</span>
             </span>
             <div className="flex items-center space-x-1">
               <button
@@ -332,9 +332,9 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
             </div>
           </div>
 
-          {/* Grid of 10 compact team buttons that cleanly fit on all smartphone/laptop resolutions */}
+          {/* Grid of compact team buttons that cleanly fit on all smartphone/laptop resolutions */}
           <div className="overflow-x-auto smooth-horizontal-scroll flex sm:grid sm:grid-cols-5 lg:grid-cols-10 gap-1 sm:gap-1.5 pb-1 sm:pb-0">
-            {teams.map((team) => {
+            {teams.map((team, idx) => {
               const roster = teamRosters[team.id] || [];
               const count = roster.length;
               const isSelected = selectedTeamId === team.id;
@@ -363,7 +363,7 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
                     <span className={`w-4 h-4 rounded text-[9px] flex items-center justify-center font-mono font-black shrink-0 ${
                       isSelected ? 'bg-white text-blue-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}>
-                      {team.numero}
+                      {team.numero || idx + 1}
                     </span>
                     <span className={`text-[9px] font-mono font-bold px-1 py-0.2 rounded shrink-0 ${
                       isSelected ? 'bg-blue-800 text-blue-100' : 'bg-slate-100 text-slate-600'

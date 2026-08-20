@@ -91,8 +91,8 @@ export interface OpponentPlayer {
  * Anagrafica Squadra Lega Fantacalcio all'italiana
  */
 export interface LeagueTeam {
-  id: string; // 'team-1', 'team-2', ... 'team-10'
-  numero: number; // 1 to 10
+  id: string; // 'team-1', 'team-2', ... 'team-N'
+  numero: number; // 1 to N
   nome: string; // Nome Squadra Fantacalcio
   capitano1: string; // Nome Capitano 1
   capitano2: string; // Nome Capitano 2
@@ -101,18 +101,54 @@ export interface LeagueTeam {
   badgeSigla?: string;
 }
 
-export const DEFAULT_LEAGUE_TEAMS: LeagueTeam[] = [
-  { id: 'team-1', numero: 1, nome: 'Squadra 1', capitano1: 'Capitano 1', capitano2: 'Vice Capitano 1', budgetIniziale: 700, coloreHex: '#2563eb', badgeSigla: 'SQ1' },
-  { id: 'team-2', numero: 2, nome: 'Squadra 2', capitano1: 'Capitano 2', capitano2: 'Vice Capitano 2', budgetIniziale: 700, coloreHex: '#059669', badgeSigla: 'SQ2' },
-  { id: 'team-3', numero: 3, nome: 'Squadra 3', capitano1: 'Capitano 3', capitano2: 'Vice Capitano 3', budgetIniziale: 700, coloreHex: '#dc2626', badgeSigla: 'SQ3' },
-  { id: 'team-4', numero: 4, nome: 'Squadra 4', capitano1: 'Capitano 4', capitano2: 'Vice Capitano 4', budgetIniziale: 700, coloreHex: '#d97706', badgeSigla: 'SQ4' },
-  { id: 'team-5', numero: 5, nome: 'Squadra 5', capitano1: 'Capitano 5', capitano2: 'Vice Capitano 5', budgetIniziale: 700, coloreHex: '#7c3aed', badgeSigla: 'SQ5' },
-  { id: 'team-6', numero: 6, nome: 'Squadra 6', capitano1: 'Capitano 6', capitano2: 'Vice Capitano 6', budgetIniziale: 700, coloreHex: '#0284c7', badgeSigla: 'SQ6' },
-  { id: 'team-7', numero: 7, nome: 'Squadra 7', capitano1: 'Capitano 7', capitano2: 'Vice Capitano 7', budgetIniziale: 700, coloreHex: '#4f46e5', badgeSigla: 'SQ7' },
-  { id: 'team-8', numero: 8, nome: 'Squadra 8', capitano1: 'Capitano 8', capitano2: 'Vice Capitano 8', budgetIniziale: 700, coloreHex: '#e11d48', badgeSigla: 'SQ8' },
-  { id: 'team-9', numero: 9, nome: 'Squadra 9', capitano1: 'Capitano 9', capitano2: 'Vice Capitano 9', budgetIniziale: 700, coloreHex: '#0d9488', badgeSigla: 'SQ9' },
-  { id: 'team-10', numero: 10, nome: 'Squadra 10', capitano1: 'Capitano 10', capitano2: 'Vice Capitano 10', budgetIniziale: 700, coloreHex: '#ea580c', badgeSigla: 'SQ10' },
+export const TEAM_COLOR_PALETTE = [
+  '#2563eb', // 1 Blu
+  '#059669', // 2 Smeraldo
+  '#dc2626', // 3 Rosso
+  '#d97706', // 4 Ambra
+  '#7c3aed', // 5 Viola
+  '#0284c7', // 6 Azzurro Sky
+  '#4f46e5', // 7 Indaco
+  '#e11d48', // 8 Rubino
+  '#0d9488', // 9 Ottanio
+  '#ea580c', // 10 Arancio
+  '#059669', // 11 Verde Scuro
+  '#9333ea', // 12 Porpora
+  '#ca8a04', // 13 Oro
+  '#be185d', // 14 Fucsia
+  '#0891b2', // 15 Turchese
+  '#475569', // 16 Ardesia
+  '#15803d', // 17 Foresta
+  '#c2410c', // 18 Ruggine
+  '#4338ca', // 19 Oltremare
+  '#be123c', // 20 Carminio
 ];
+
+/**
+ * Genera l'elenco delle squadre predefinite per un determinato numero di partecipanti (default 10)
+ */
+export const generateDefaultTeams = (count: number = 10, initialBudget: number = 700): LeagueTeam[] => {
+  const teams: LeagueTeam[] = [];
+  const safeCount = Math.max(4, Math.min(20, count || 10));
+
+  for (let i = 1; i <= safeCount; i++) {
+    const color = TEAM_COLOR_PALETTE[(i - 1) % TEAM_COLOR_PALETTE.length];
+    teams.push({
+      id: `team-${i}`,
+      numero: i,
+      nome: `Squadra ${i}`,
+      capitano1: `Capitano ${i}`,
+      capitano2: `Vice Capitano ${i}`,
+      budgetIniziale: initialBudget,
+      coloreHex: color,
+      badgeSigla: `SQ${i}`,
+    });
+  }
+
+  return teams;
+};
+
+export const DEFAULT_LEAGUE_TEAMS: LeagueTeam[] = generateDefaultTeams(10, 700);
 
 /**
  * Excel-Style Independent League Sheet / Workspace
@@ -122,7 +158,8 @@ export interface LeagueWorkspace {
   nome: string; // e.g. 'Lega 1 (Amici)', 'Lega 2 (Lavoro)'
   coloreTab: string; // Excel sheet tab color (e.g. '#2563eb', '#059669', '#d97706', '#7c3aed', '#e11d48')
   budgetBase: 500 | 1000;
-  teams: LeagueTeam[]; // 10 teams with their distinct names, captains, and budget
+  numeroSquadre?: number; // Default 10 (configurable from 4 to 20)
+  teams: LeagueTeam[]; // Dynamic teams with their distinct names, captains, and budget
   playerAssignments: Record<string, string>; // playerId -> teamId
   playerPrices: Record<string, number>; // playerId -> paidPrice FM
   targetPlayerIds?: string[]; // target player IDs in this league
@@ -147,13 +184,15 @@ export const createDefaultLeague = (
   nome = 'Lega 1 (Principale)',
   coloreTab = '#2563eb',
   budgetBase: 500 | 1000 = 500,
-  initialBudgetEach = 700
+  initialBudgetEach = 700,
+  numberOfTeams = 10
 ): LeagueWorkspace => ({
   id,
   nome,
   coloreTab,
   budgetBase,
-  teams: DEFAULT_LEAGUE_TEAMS.map((t) => ({ ...t, budgetIniziale: initialBudgetEach })),
+  numeroSquadre: numberOfTeams,
+  teams: generateDefaultTeams(numberOfTeams, initialBudgetEach),
   playerAssignments: {},
   playerPrices: {},
   targetPlayerIds: [],
@@ -163,7 +202,7 @@ export const createDefaultLeague = (
 
 export interface LeagueSettings {
   budgetTotale: 500 | 1000 | number;
-  numeroSquadre: 8 | 10 | 12;
+  numeroSquadre: number;
   modificatoreDifesa: boolean;
   bonusImbattibilitaPortiere: boolean;
   capitanoBonus: boolean;

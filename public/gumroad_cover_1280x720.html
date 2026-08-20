@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Cover Gumroad 1280x720 - FantaScout Pro 2026/27</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #050b14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      padding: 20px;
+    }
+    .instructions {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .instructions strong {
+      color: #38bdf8;
+    }
+    /* Dimensione ESATTA 1280 x 720 px (16:9 Standard HD a 72 DPI) */
+    .banner-container {
+      width: 1280px;
+      height: 720px;
+      background: linear-gradient(135deg, #091322 0%, #0d1e38 50%, #08111e 100%);
+      border: 3px solid #1e3a8a;
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(37, 99, 235, 0.2);
+    }
+    /* Subtle geometric grid background */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    /* Left column - Value proposition & typography */
+    .left-col {
+      flex: 1.25;
+      padding: 60px 40px 50px 65px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 2;
+    }
+    .top-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge-season {
+      background: rgba(37, 99, 235, 0.25);
+      border: 1.5px solid #3b82f6;
+      color: #60a5fa;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-device {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1.5px solid #10b981;
+      color: #34d399;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .main-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 58px;
+      font-weight: 900;
+      line-height: 1.05;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: -1.5px;
+      margin-top: 15px;
+      margin-bottom: 12px;
+    }
+    .main-title span.blue {
+      color: #38bdf8;
+      text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+    }
+    .main-title span.gold {
+      color: #f59e0b;
+    }
+    .subtitle {
+      color: #cbd5e1;
+      font-size: 18px;
+      line-height: 1.45;
+      font-weight: 500;
+      max-width: 580px;
+    }
+    .features-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .feature-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .price-tag {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .price-amount {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 38px;
+      font-weight: 900;
+      color: #fbbf24;
+      line-height: 1;
+    }
+    .price-note {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .guarantee-pill {
+      margin-left: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #e2e8f0;
+      font-weight: 700;
+    }
+
+    /* Right column - Mockup / App Visual Preview */
+    .right-col {
+      flex: 1;
+      padding: 50px 50px 50px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+    }
+    .preview-card {
+      width: 100%;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 18px;
+      box-shadow: -20px 25px 50px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      background: #1e293b;
+      padding: 12px 18px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .roles-row {
+      display: flex;
+      gap: 6px;
+      padding: 12px 18px;
+      background: #0b1322;
+      border-bottom: 1px solid #1e293b;
+    }
+    .role-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .role-p { background: #d97706; color: #fff; }
+    .role-d { background: #059669; color: #fff; }
+    .role-c { background: #2563eb; color: #fff; }
+    .role-a { background: #dc2626; color: #fff; }
+
+    .auction-table-mini {
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .table-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    .table-row .p-name {
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .table-row .p-team {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-left: 6px;
+    }
+    .table-row .p-price {
+      font-weight: 900;
+      color: #fbbf24;
+      font-family: monospace;
+    }
+    .table-row .p-tier {
+      background: #3b82f6;
+      color: white;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 800;
+    }
+    .live-budget-box {
+      margin: 12px 18px 18px 18px;
+      background: #091322;
+      border: 1px solid #2563eb;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .budget-label {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+    .budget-val {
+      font-size: 15px;
+      font-weight: 900;
+      color: #10b981;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="instructions">
+    📐 Dimensioni esatte: <strong>1280 × 720 px</strong> (Standard Gumroad HD 16:9 • 72 DPI)<br>
+    Fai <strong>Tasto Destro sull'immagine sotto ➔ "Salva immagine con nome..."</strong> oppure fai uno screenshot preciso del riquadro.
+  </div>
+
+  <div class="banner-container">
+    <div class="bg-grid"></div>
+
+    <!-- Left Column -->
+    <div class="left-col">
+      <div class="top-badges">
+        <div class="badge-season">⚽ Stagione Serie A 2026/2027</div>
+        <div class="badge-device">💻 2 PC + 📱 1 Mobile</div>
+      </div>
+
+      <div>
+        <h1 class="main-title">
+          Fanta<span class="blue">Scout</span> <span class="gold">PRO</span>
+        </h1>
+        <p class="subtitle">
+          La Guida Interattiva & Auction Master Definitiva per dominare la tua Asta del Fantacalcio 2026/27.
+        </p>
+
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <span>507 Calciatori & Algoritmo FM</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <span>Asta Live & Budget 10 Squadre</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">☁️</div>
+            <span>Sync Cloud Multi-Dispositivo</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📁</div>
+            <span>Import/Export Excel & Rose</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="price-tag">
+          <div class="price-amount">8,99 €</div>
+          <div class="price-note">Licenza Ufficiale<br>Fino al 1° Ago '27</div>
+        </div>
+        <div class="guarantee-pill">
+          🔒 Attivazione Immediata Gumroad
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column (Visual Mockup) -->
+    <div class="right-col">
+      <div class="preview-card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="status-dot"></span>
+            <span>FANTASCOUT LIVE ENGINE</span>
+          </div>
+          <span style="font-size: 10px; color: #38bdf8; font-weight: 800; font-family: monospace;">ASTA IN CORSO</span>
+        </div>
+
+        <div class="roles-row">
+          <span class="role-badge role-p">P (62)</span>
+          <span class="role-badge role-d">D (177)</span>
+          <span class="role-badge role-c">C (178)</span>
+          <span class="role-badge role-a">A (90)</span>
+        </div>
+
+        <div class="auction-table-mini">
+          <div class="table-row">
+            <div>
+              <span class="p-name">LAUTARO MARTINEZ</span>
+              <span class="p-team">INT</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="p-tier">TOP 1</span>
+              <span class="p-price">315 FM</span>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <span class="p-name">VLAHOVIC</span>
+              <span class="p-team">JUV</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="p-tier">TOP 1</span>
+              <span class="p-price">280 FM</span>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <span class="p-name">KOOPMEINERS</span>
+              <span class="p-team">JUV</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="p-tier">TOP 2</span>
+              <span class="p-price">98 FM</span>
+            </div>
+          </div>
+
+          <div class="table-row">
+            <div>
+              <span class="p-name">DIMARCO</span>
+              <span class="p-team">INT</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="p-tier">TOP 2</span>
+              <span class="p-price">62 FM</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="live-budget-box">
+          <div>
+            <div class="budget-label">CREDITI RESIDUI (TUA SQUADRA)</div>
+            <div class="budget-val">245 / 500 FM</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="budget-label">SLOT ROSA</div>
+            <div style="font-size: 13px; font-weight: 800; color: #fff;">18 / 25 ACQUISTATI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

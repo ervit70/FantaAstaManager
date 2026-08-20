@@ -465,9 +465,15 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               <p className="text-[11.5px] text-slate-300 leading-relaxed max-w-xl">
                 Non hai ancora il file Excel aggiornato? Scarica la lista ufficiale direttamente dal portale <strong>Fantacalcio.it</strong>:
               </p>
-              <div className="text-[10.5px] text-amber-300/90 font-medium flex items-center space-x-1 pt-0.5">
-                <span>⚠️</span>
-                <span><strong>Nota:</strong> Devi effettuare il login con il tuo account su <em>www.fantacalcio.it</em> per vedere il tasto <strong>"SCARICA EXCEL"</strong> sulla loro pagina.</span>
+              <div className="space-y-1 pt-0.5">
+                <div className="text-[10.5px] text-amber-300 font-medium flex items-center space-x-1">
+                  <span>📅</span>
+                  <span><strong>Data attuale listone: 20 Agosto 2026</strong> • Calciomercato aperto: la versione definitiva ufficiale con tutti gli acquisti dell'ultim'ora sarà scaricabile a partire dal <strong>2 Settembre</strong>.</span>
+                </div>
+                <div className="text-[10.5px] text-slate-300/90 font-normal flex items-center space-x-1">
+                  <span>⚠️</span>
+                  <span><strong>Nota:</strong> Effettua il login su <em>www.fantacalcio.it</em> per visualizzare il tasto <strong>"SCARICA EXCEL"</strong> sulla loro pagina.</span>
+                </div>
               </div>
             </div>
 

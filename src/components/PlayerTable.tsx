@@ -359,27 +359,27 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
               const paidPrice = playerPrices[p.id];
 
               const roleBadgeColor = {
-                P: 'text-amber-800 bg-amber-100/90 border-amber-300',
-                D: 'text-sky-800 bg-sky-100/90 border-sky-300',
-                C: 'text-emerald-800 bg-emerald-100/90 border-emerald-300',
-                A: 'text-rose-800 bg-rose-100/90 border-rose-300',
+                P: 'bg-amber-500 text-slate-950 font-black shadow-2xs',
+                D: 'bg-emerald-600 text-white font-black shadow-2xs',
+                C: 'bg-blue-600 text-white font-black shadow-2xs',
+                A: 'bg-red-600 text-white font-black shadow-2xs',
               }[p.ruolo];
 
-              const rowBg = assignedTeam ? 'bg-amber-50/80' : idx % 2 === 1 ? 'bg-slate-50/80' : 'bg-white';
+              const rowBg = assignedTeam ? 'bg-amber-50/90' : idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white';
 
               return (
                 <tr
                   key={p.id}
-                  className={`hover:bg-blue-50/80 transition-colors text-slate-800 h-7 sm:h-7.5 ${rowBg}`}
+                  className={`hover:bg-blue-50/90 transition-colors text-slate-800 h-7 sm:h-7.5 ${rowBg}`}
                 >
-                  {/* Role (Sticky left on horizontal scroll) */}
+                  {/* Role (Sticky left on horizontal scroll - Fantacalcio.it solid square) */}
                   <td className={`py-0.5 px-1 text-center sticky left-0 z-10 ${rowBg}`}>
                     <div className="flex flex-col items-center">
-                      <span className={`px-1 py-0.2 rounded font-black text-[9.5px] border font-mono ${roleBadgeColor}`}>
+                      <span className={`w-4.5 h-4.5 rounded flex items-center justify-center font-black text-[10px] font-mono ${roleBadgeColor}`}>
                         {p.ruolo}
                       </span>
                       {p.ruoloExtra && (
-                        <span className="text-[8px] text-slate-500 font-mono font-semibold truncate max-w-[36px]" title={`Ruolo Mantra: ${p.ruoloExtra}`}>
+                        <span className="text-[7.5px] text-slate-500 font-mono font-bold truncate max-w-[36px]" title={`Ruolo Mantra: ${p.ruoloExtra}`}>
                           {p.ruoloExtra}
                         </span>
                       )}

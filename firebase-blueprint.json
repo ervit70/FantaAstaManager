@@ -14,12 +14,29 @@
         "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
       },
       "required": ["id", "updatedAt"]
+    },
+    "LicenseActivation": {
+      "title": "LicenseActivation",
+      "type": "object",
+      "description": "Multi-device registration and tracking for personal license keys (up to 3 devices)",
+      "properties": {
+        "licenseKey": { "type": "string" },
+        "devices": { "type": "array", "description": "List of registered device IDs and names" },
+        "maxDevices": { "type": "number", "description": "Maximum allowed devices (default 3)" },
+        "expiresAt": { "type": "string", "description": "ISO timestamp of expiration" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["licenseKey", "devices", "expiresAt", "updatedAt"]
     }
   },
   "firestore": {
     "/league_state/{leagueId}": {
-      "entity": "LeagueState",
+      "schema": "LeagueState",
       "description": "Shared Fantacalcio state across all connected devices and computers"
+    },
+    "/license_activations/{licenseKey}": {
+      "schema": "LicenseActivation",
+      "description": "Multi-device license registration tracking (max 3 devices)"
     }
   }
 }

@@ -4,5 +4,8 @@ service cloud.firestore {
     match /league_state/{leagueId} {
       allow read, write: if true;
     }
+    match /license_activations/{licenseKey} {
+      allow read, write: if true;
+    }
   }
 }

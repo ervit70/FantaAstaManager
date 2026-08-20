@@ -25,6 +25,9 @@ import { LeagueRegistryModal } from './components/LeagueRegistryModal';
 import { LeagueSquadsModal } from './components/LeagueSquadsModal';
 import { LiveAuctionBudgetBar } from './components/LiveAuctionBudgetBar';
 import { ExcelLeagueTabs } from './components/ExcelLeagueTabs';
+import { UserManualModal } from './components/UserManualModal';
+import { PurchaseLicenseModal } from './components/PurchaseLicenseModal';
+import { LicenseStatus, loadStoredLicense, saveStoredLicense, getTrustedServerTime, SEASON_EXPIRY_DATE_ISO, calculateRemainingDays } from './services/licenseService';
 import { subscribeToCloudLeagueState, saveCloudLeagueState, CloudLeagueState } from './firebase';
 import { Upload, FileSpreadsheet, RotateCcw } from 'lucide-react';
 
@@ -119,6 +122,45 @@ export function App() {
   const [isSquadsModalOpen, setIsSquadsModalOpen] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isManualOpen, setIsManualOpen] = useState(false);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+
+  // License State with Server-Time Anti-Tamper Verification
+  const [currentLicense, setCurrentLicense] = useState<LicenseStatus | null>(() => loadStoredLicense());
+  const [gumroadUrl, setGumroadUrl] = useState<string>(() => {
+    return localStorage.getItem('fantascout_gumroad_url') || 'https://ervit.gumroad.com/l/djmkop';
+  });
+
+  // Verify License & Expiry against trusted server time on startup
+  useEffect(() => {
+    const checkLicenseStatus = async () => {
+      const stored = loadStoredLicense();
+      if (stored && stored.isLicensed) {
+        const trustedNow = await getTrustedServerTime();
+        const expiry = new Date(stored.expiresAt || SEASON_EXPIRY_DATE_ISO);
+        const isExpired = trustedNow >= expiry;
+        const daysRemaining = calculateRemainingDays(trustedNow, expiry);
+
+        const updated: LicenseStatus = {
+          ...stored,
+          isExpired,
+          isLicensed: !isExpired,
+          daysRemaining,
+          verifiedAt: trustedNow.toISOString(),
+        };
+        setCurrentLicense(updated);
+        saveStoredLicense(updated);
+      }
+    };
+    checkLicenseStatus();
+  }, []);
+
+  const handleUpdateGumroadUrl = (url: string) => {
+    setGumroadUrl(url);
+    try {
+      localStorage.setItem('fantascout_gumroad_url', url);
+    } catch {}
+  };
 
   // Flag to avoid loop syncing when updating from remote
   const isRemoteUpdateRef = useRef(false);
@@ -250,9 +292,9 @@ export function App() {
     saveCloudLeagueState({ activeLeagueId: leagueId }).catch(() => {});
   };
 
-  const handleCreateLeague = (nome: string, budgetIniziale = 700, coloreTab = '#2563eb') => {
+  const handleCreateLeague = (nome: string, budgetIniziale = 700, coloreTab = '#2563eb', teamCount = 10) => {
     const newId = `league-${Date.now()}`;
-    const newLeague = createDefaultLeague(newId, nome, coloreTab, 500, budgetIniziale);
+    const newLeague = createDefaultLeague(newId, nome, coloreTab, 500, budgetIniziale, teamCount);
     const nextLeagues = [...leagues, newLeague];
     setActiveLeagueId(newId);
     persistLeagues(nextLeagues, newId);
@@ -339,6 +381,28 @@ export function App() {
       // Assigned to a team (if moved from Team A to Team B, price stays attached to player and is now deducted from Team B while restoring Team A)
       currentAssignments[playerId] = teamId;
     }
+
+    const nextLeagues = leagues.map((l) =>
+      l.id === activeLeague.id
+        ? {
+            ...l,
+            playerAssignments: currentAssignments,
+            playerPrices: currentPrices,
+            updatedAt: new Date().toISOString(),
+          }
+        : l
+    );
+    persistLeagues(nextLeagues);
+  };
+
+  const handleBatchReleasePlayers = (playerIds: string[]) => {
+    const currentAssignments = { ...(activeLeague.playerAssignments || {}) };
+    const currentPrices = { ...(activeLeague.playerPrices || {}) };
+
+    playerIds.forEach((pId) => {
+      delete currentAssignments[pId];
+      delete currentPrices[pId];
+    });
 
     const nextLeagues = leagues.map((l) =>
       l.id === activeLeague.id
@@ -692,9 +756,9 @@ export function App() {
   }, [playerAssignments]);
 
   return (
-    <div className="min-h-screen w-full lg:h-screen lg:w-screen lg:overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
-      {/* TOP SECTION: Scrolls naturally on smartphone, fixed on desktop (lg:) */}
-      <div className="relative lg:shrink-0 lg:z-30 bg-slate-100 border-b border-slate-200 shadow-2xs">
+    <div className="min-h-screen w-full flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
+      {/* TOP SECTION: Fully responsive on all devices and monitor resolutions */}
+      <div className="relative shrink-0 z-30 bg-slate-100 border-b border-slate-200 shadow-2xs">
         {/* Header */}
         <Header
           activeRole={activeRole}
@@ -711,7 +775,11 @@ export function App() {
           onOpenRegistryModal={() => setIsRegistryModalOpen(true)}
           onOpenSquadsModal={() => setIsSquadsModalOpen(true)}
           assignedPlayersCount={assignedPlayersCount}
+          teamsCount={leagueTeams.length}
           isCloudSynced={isCloudSynced}
+          onOpenManual={() => setIsManualOpen(true)}
+          onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
+          currentLicense={currentLicense}
         />
 
         {/* EXCEL MULTI-LEAGUE WORKSPACE TABS BAR */}
@@ -743,8 +811,8 @@ export function App() {
 
           {activeRole !== 'PLANNER' && (
             <div className="mt-0.5 sm:mt-1 space-y-0.5 sm:space-y-1">
-              {/* Hero role context banner (shown on tablet and desktop) */}
-              <div className="hidden sm:block">
+              {/* Hero role context banner (accessible on all screen sizes) */}
+              <div className="block">
                 <RoleHeroBanner
                   activeRole={activeRole}
                   onSelectRole={(r) => handleRoleSelect(r)}
@@ -769,8 +837,8 @@ export function App() {
         </div>
       </div>
 
-      {/* PLAYERS REGION (Natural full scroll on smartphone, independent scroll on desktop) */}
-      <main className="flex-1 w-full lg:min-h-0 lg:overflow-y-auto max-w-[1700px] mx-auto px-1.5 sm:px-3 py-1 flex flex-col">
+      {/* PLAYERS REGION (Natural full responsive scroll on all monitors, laptops, and mobile screens) */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto px-1.5 sm:px-3 py-1 flex flex-col">
         {activeRole === 'PLANNER' ? (
           <AuctionPlanner
             targetPlayers={targetPlayersList}
@@ -812,15 +880,29 @@ export function App() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-500 shadow-xs">
-                  <p className="text-sm font-bold text-slate-800">Nessun giocatore corrisponde ai filtri selezionati.</p>
-                  <p className="text-xs text-slate-500 mt-1">Prova ad azzerare la ricerca o a modificare i parametri di filtro.</p>
-                  <button
-                    onClick={() => setFilter(DEFAULT_FILTER)}
-                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition-colors shadow-xs cursor-pointer"
-                  >
-                    Azzera Tutti i Filtri
-                  </button>
+                <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center text-slate-500 shadow-xs max-w-xl mx-auto my-4 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center font-bold">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    {filter.teamId ? 'Nessun giocatore acquistato da questa squadra' : 'Nessun giocatore corrisponde ai filtri selezionati'}
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    {filter.teamId 
+                      ? 'La squadra selezionata non ha ancora calciatori assegnati nella sua rosa all\'asta.' 
+                      : 'Nessun calciatore trovato con la combinazione di ruolo, squadra o parametri impostati.'}
+                  </p>
+                  <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      onClick={() => {
+                        setFilter(DEFAULT_FILTER);
+                        setActiveRole('TUTTI');
+                      }}
+                      className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm cursor-pointer active:scale-95"
+                    >
+                      Mostra Tutti i {basePlayersList.length} Calciatori
+                    </button>
+                  </div>
                 </div>
               )
             ) : viewMode === 'grid' ? (
@@ -868,18 +950,22 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <footer className="shrink-0 bg-slate-100 border-t border-slate-200 px-3 py-1 text-[10px] text-slate-600 uppercase tracking-tight">
+      <footer className="shrink-0 bg-slate-100 border-t border-slate-200 px-3 py-1.5 text-[10px] text-slate-600 tracking-tight">
         <div className="w-full max-w-[1700px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 font-medium">
-          <div className="flex items-center space-x-2 font-mono text-[11px]">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[10.5px]">
             <span>
               {customPlayers ? '☁️ Cloud Database Attivo (File Excel Sincronizzato)' : '☁️ Cloud Database Attivo • Serie A Season 2025/26 Certified Stats'}
             </span>
+            <span className="text-slate-400">•</span>
+            <span className="text-amber-700 font-sans font-medium text-[10px] bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 rounded">
+              📅 Listone: 20/08/2026 (Mercato aperto • Definitivo dal 2 Settembre)
+            </span>
           </div>
-          <div className="flex items-center space-x-4 text-[11px] font-semibold">
+          <div className="flex items-center space-x-3 text-[10.5px] font-semibold">
             <span className="flex items-center space-x-1">
               <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
               <span>
-                Foglio: <strong>{activeLeague.nome}</strong> • {basePlayersList.length} Calciatori ({assignedPlayersCount} Assegnati alle 10 Squadre)
+                Foglio: <strong>{activeLeague.nome}</strong> • {basePlayersList.length} Calciatori ({assignedPlayersCount} Assegnati alle {leagueTeams.length} Squadre)
               </span>
             </span>
             <button
@@ -892,7 +978,7 @@ export function App() {
         </div>
       </footer>
 
-      {/* Anagrafica 10 Squadre Modal (for the active league sheet) */}
+      {/* Anagrafica Squadre Modal (with anti-accidental-deletion protection) */}
       <LeagueRegistryModal
         isOpen={isRegistryModalOpen}
         onClose={() => setIsRegistryModalOpen(false)}
@@ -900,6 +986,8 @@ export function App() {
         onSaveTeams={handleSaveLeagueTeams}
         playerAssignments={playerAssignments}
         playerPrices={playerPrices}
+        allPlayers={basePlayersList}
+        onBatchReleasePlayers={handleBatchReleasePlayers}
       />
 
       {/* Rose 10 Squadre Modal (for the active league sheet) */}
@@ -959,6 +1047,25 @@ export function App() {
         onWipeDatabase={handleWipeDatabase}
         onResetToDefault={handleResetToDefault}
         budgetBase={budgetBase}
+      />
+
+      {/* Interactive Illustrated User Manual Modal */}
+      <UserManualModal
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
+        onOpenRegistry={() => setIsRegistryModalOpen(true)}
+        onOpenSquads={() => setIsSquadsModalOpen(true)}
+        onOpenExcel={() => setIsExcelModalOpen(true)}
+      />
+
+      {/* Purchase & License Modal (Gumroad + PayPal with Server Time Expiry Check) */}
+      <PurchaseLicenseModal
+        isOpen={isLicenseModalOpen}
+        onClose={() => setIsLicenseModalOpen(false)}
+        currentLicense={currentLicense}
+        onLicenseUpdated={setCurrentLicense}
+        gumroadUrl={gumroadUrl}
+        onUpdateGumroadUrl={handleUpdateGumroadUrl}
       />
     </div>
   );
