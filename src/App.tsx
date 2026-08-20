@@ -750,14 +750,78 @@ export function App() {
     return result;
   }, [basePlayersList, filter, budgetBase, playerAssignments, leagueTeams]);
 
+  // Global keyboard shortcut to scroll the table with Arrow Up/Down, Page Up/Down, Space
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement as HTMLElement;
+      // Do not capture if user is typing in a text field, search bar or select
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      const tableScrollContainer = document.getElementById('player-table-scroll-container');
+      const targetElement = tableScrollContainer || window;
+
+      const rowStep = 45;
+      const pageStep = tableScrollContainer ? tableScrollContainer.clientHeight * 0.75 : window.innerHeight * 0.75;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollBy({ top: rowStep, behavior: 'smooth' });
+        } else {
+          window.scrollBy({ top: rowStep, behavior: 'smooth' });
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollBy({ top: -rowStep, behavior: 'smooth' });
+        } else {
+          window.scrollBy({ top: -rowStep, behavior: 'smooth' });
+        }
+      } else if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollBy({ top: pageStep, behavior: 'smooth' });
+        } else {
+          window.scrollBy({ top: pageStep, behavior: 'smooth' });
+        }
+      } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollBy({ top: -pageStep, behavior: 'smooth' });
+        } else {
+          window.scrollBy({ top: -pageStep, behavior: 'smooth' });
+        }
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        if (tableScrollContainer) {
+          tableScrollContainer.scrollTo({ top: tableScrollContainer.scrollHeight, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // Assigned players count in the active league
   const assignedPlayersCount = useMemo(() => {
     return Object.keys(playerAssignments).length;
   }, [playerAssignments]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
-      {/* TOP SECTION: Fully responsive on all devices and monitor resolutions */}
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-slate-100 font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
+      {/* TOP SECTION: Fixed on desktop, sticky on all devices */}
       <div className="relative shrink-0 z-30 bg-slate-100 border-b border-slate-200 shadow-2xs">
         {/* Header */}
         <Header
@@ -838,7 +902,7 @@ export function App() {
       </div>
 
       {/* PLAYERS REGION (Natural full responsive scroll on all monitors, laptops, and mobile screens) */}
-      <main className="flex-1 w-full max-w-[1700px] mx-auto px-1.5 sm:px-3 py-1 flex flex-col">
+      <main className="flex-1 w-full min-h-0 max-w-[1700px] mx-auto px-1.5 sm:px-3 py-1 flex flex-col overflow-hidden">
         {activeRole === 'PLANNER' ? (
           <AuctionPlanner
             targetPlayers={targetPlayersList}

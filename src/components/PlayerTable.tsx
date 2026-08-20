@@ -190,6 +190,56 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
     return [...teams].sort((a, b) => a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' }));
   }, [teams]);
 
+  // Keyboard navigation support: Arrow Up/Down, Page Up/Down, Home/End scroll the table when focused or when keys are pressed
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // If the event originates from an input or select, let native behavior happen
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    const container = document.getElementById('player-table-scroll-container');
+    if (!container) return;
+
+    const rowHeight = 36;
+    const pageScroll = container.clientHeight * 0.8;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        container.scrollBy({ top: rowHeight, behavior: 'smooth' });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        container.scrollBy({ top: -rowHeight, behavior: 'smooth' });
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        container.scrollBy({ top: pageScroll, behavior: 'smooth' });
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        container.scrollBy({ top: -pageScroll, behavior: 'smooth' });
+        break;
+      case 'Home':
+        e.preventDefault();
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'End':
+        e.preventDefault();
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        container.scrollBy({ left: 60, behavior: 'smooth' });
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        container.scrollBy({ left: -60, behavior: 'smooth' });
+        break;
+    }
+  };
+
   // Helper to render sort indicator in sticky headers
   const renderSortHeader = (
     columnKey: SortColumn,
@@ -290,7 +340,9 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
       {/* Scrollable Container with Sticky Table Header and Responsive Horizontal and Vertical Scroll */}
       <div 
         id="player-table-scroll-container"
-        className="table-scroll-wrapper relative w-full flex-1 min-h-0 overflow-y-auto overflow-x-auto"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        className="table-scroll-wrapper relative w-full flex-1 min-h-0 overflow-y-auto overflow-x-auto focus:outline-none"
       >
         <table className="w-full text-left text-[11px] border-collapse leading-none min-w-[700px] sm:min-w-full">
           <thead>
