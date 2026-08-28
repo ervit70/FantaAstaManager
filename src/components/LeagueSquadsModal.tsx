@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { Player, LeagueTeam, Role } from '../types/fantacalcio';
+import { exportLeagueAuctionToExcel } from '../utils/excelExporter';
 import { 
   Trophy, 
   X, 
@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Shield,
   Layers,
-  Sparkles
+  Sparkles,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface LeagueSquadsModalProps {
@@ -140,59 +141,15 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
   // Early return strictly AFTER all hooks have executed
   if (!isOpen) return null;
 
-  // Export all rosters to an organized Excel workbook
+  // Export all rosters to an organized Excel workbook with required column structure
   const handleExportAllRostersExcel = () => {
-    const workbook = XLSX.utils.book_new();
-
-    teams.forEach((t) => {
-      const roster = teamRosters[t.id] || [];
-      const budgetInit = t.budgetIniziale !== undefined ? t.budgetIniziale : 700;
-      let totalSpent = 0;
-      roster.forEach((p) => {
-        const pr = playerPrices[p.id];
-        if (pr) totalSpent += Number(pr);
-      });
-
-      const rows: any[][] = [
-        [`ROSA FANTACALCIO: ${t.nome.toUpperCase()}`],
-        [`Capitano 1: ${t.capitano1 || 'Non specificato'}`, `Capitano 2: ${t.capitano2 || 'Non specificato'}`],
-        [`Monte Iniziale: ${budgetInit} FM`, `Crediti Spesi: ${totalSpent} FM`, `Crediti Residui: ${budgetInit - totalSpent} FM`],
-        [`Totale Calciatori: ${roster.length} / 25`],
-        [],
-        ['Ruolo', 'Nome Calciatore', 'Squadra Serie A', 'Prezzo Asta (FM)', 'FantaMedia 25/26', 'Media Voto', 'Gol 25/26', 'Assist', 'Rigori', 'Presenze'],
-      ];
-
-      // Sort by role P -> D -> C -> A then name
-      const roleOrder: Record<Role, number> = { P: 1, D: 2, C: 3, A: 4 };
-      const sorted = [...roster].sort((a, b) => {
-        if (roleOrder[a.ruolo] !== roleOrder[b.ruolo]) {
-          return roleOrder[a.ruolo] - roleOrder[b.ruolo];
-        }
-        return a.nome.localeCompare(b.nome);
-      });
-
-      sorted.forEach((p) => {
-        const paid = playerPrices[p.id] !== undefined ? playerPrices[p.id] : '-';
-        rows.push([
-          p.ruolo,
-          p.nome,
-          p.squadra,
-          paid,
-          p.fantaMedia.toFixed(2),
-          p.mediaVoto.toFixed(2),
-          p.ruolo === 'P' ? `-${p.golSubiti} GS` : p.golFatti,
-          p.assist,
-          p.rigoriSegnati > 0 ? `${p.rigoriSegnati}/${p.rigoriTirati}` : '-',
-          p.presenze,
-        ]);
-      });
-
-      const worksheet = XLSX.utils.aoa_to_sheet(rows);
-      const cleanTitle = t.nome.substring(0, 28).replace(/[\\/?*[\]]/g, '');
-      XLSX.utils.book_append_sheet(workbook, worksheet, cleanTitle || `Squadra ${t.numero}`);
+    exportLeagueAuctionToExcel({
+      teams,
+      allPlayers,
+      playerAssignments,
+      playerPrices,
+      leagueName: 'Lega_Fantacalcio',
     });
-
-    XLSX.writeFile(workbook, `Rose_${teams.length}_Squadre_Fantacalcio_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const renderRoleSection = (title: string, roleCode: Role, players: Player[], badgeBg: string) => {
@@ -288,11 +245,11 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
           <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={handleExportAllRostersExcel}
-              className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title="Scarica file Excel con i fogli delle rose"
+              className="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all shadow-sm hover:shadow cursor-pointer active:scale-95"
+              title="Scarica file Excel con tutte le squadre: Colonna A vuota, Col B Squadra 1, Col C Valore d'acquisto, Col D Squadra 2, etc."
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Esporta {teams.length} Rose Excel</span>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+              <span>Scarica Excel Asta ({teams.length} Squadre)</span>
             </button>
             <button
               onClick={onClose}
@@ -353,31 +310,31 @@ export const LeagueSquadsModal: React.FC<LeagueSquadsModalProps> = ({
                   key={team.id}
                   onClick={() => setSelectedTeamId(team.id)}
                   title={`${team.nome} (Giocatori: ${count}/25, Residui: ${rem} FM)`}
-                  className={`min-w-[95px] sm:min-w-0 flex-1 p-1 sm:p-1.5 rounded-lg text-left transition-all flex flex-col justify-between cursor-pointer border relative shrink-0 sm:shrink ${
+                  className={`min-w-[125px] sm:min-w-[130px] p-2 rounded-lg text-left transition-all flex flex-col justify-between cursor-pointer border relative shrink-0 shadow-2xs ${
                     isSelected
                       ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-400'
                       : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between space-x-1 w-full">
+                  <div className="flex items-center justify-between gap-1 w-full">
                     <span className={`w-4 h-4 rounded text-[9px] flex items-center justify-center font-mono font-black shrink-0 ${
                       isSelected ? 'bg-white text-blue-900' : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}>
                       {team.numero || idx + 1}
                     </span>
-                    <span className={`text-[9px] font-mono font-bold px-1 py-0.2 rounded shrink-0 ${
+                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
                       isSelected ? 'bg-blue-800 text-blue-100' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {count}/25
                     </span>
                   </div>
 
-                  <div className="mt-1 w-full">
-                    <span className="font-bold text-[10.5px] truncate block leading-tight">
+                  <div className="mt-1.5 w-full">
+                    <span className="font-bold text-[11px] block leading-tight whitespace-nowrap overflow-hidden text-ellipsis" title={team.nome}>
                       {team.nome}
                     </span>
-                    <span className={`text-[9px] font-mono block ${isSelected ? 'text-amber-200 font-bold' : 'text-emerald-700 font-semibold'}`}>
-                      {rem} FM
+                    <span className={`text-[9.5px] font-mono block mt-0.5 ${isSelected ? 'text-amber-200 font-bold' : 'text-emerald-700 font-bold'}`}>
+                      {rem} FM residui
                     </span>
                   </div>
                 </button>

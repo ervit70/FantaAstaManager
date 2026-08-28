@@ -95,6 +95,7 @@ export function App() {
   const [activeRole, setActiveRole] = useState<Role | 'TUTTI' | 'PLANNER'>('TUTTI');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [filter, setFilter] = useState<FilterState>(DEFAULT_FILTER);
+  const [previousFilter, setPreviousFilter] = useState<FilterState | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(true);
 
@@ -868,7 +869,10 @@ export function App() {
             playerPrices={playerPrices}
             allPlayers={basePlayersList}
             selectedTeamFilter={filter.assegnazioneLega}
-            onSelectTeamFilter={(teamId) => setFilter((prev) => ({ ...prev, assegnazioneLega: teamId }))}
+            onSelectTeamFilter={(teamId) => {
+              setPreviousFilter({ ...filter });
+              setFilter((prev) => ({ ...prev, assegnazioneLega: teamId }));
+            }}
             onOpenRegistry={() => setIsRegistryModalOpen(true)}
             onOpenSquads={() => setIsSquadsModalOpen(true)}
           />
@@ -888,8 +892,16 @@ export function App() {
               {/* Filter toolbar */}
               <FilterBar
                 filter={filter}
-                onChangeFilter={(newF) => setFilter((prev) => ({ ...prev, ...newF }))}
-                onResetFilter={() => setFilter(DEFAULT_FILTER)}
+                onChangeFilter={(newF) => {
+                  if (newF.ruolo !== undefined) {
+                    setActiveRole(newF.ruolo);
+                  }
+                  setFilter((prev) => ({ ...prev, ...newF }));
+                }}
+                onResetFilter={() => {
+                  setFilter(DEFAULT_FILTER);
+                  setActiveRole('TUTTI');
+                }}
                 viewMode={viewMode}
                 onToggleViewMode={setViewMode}
                 totalFilteredCount={filteredPlayers.length}
@@ -944,25 +956,57 @@ export function App() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center text-slate-500 shadow-xs max-w-xl mx-auto my-4 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center font-bold">
-                    <Search className="w-6 h-6" />
+                <div className="bg-white border-2 border-amber-200/80 rounded-2xl p-6 sm:p-10 text-center text-slate-600 shadow-sm max-w-xl mx-auto my-6 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center font-black text-2xl shadow-2xs">
+                    ⚠️
                   </div>
-                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
-                    {filter.teamId ? 'Nessun giocatore acquistato da questa squadra' : 'Nessun giocatore corrisponde ai filtri selezionati'}
-                  </h3>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    {filter.teamId 
-                      ? 'La squadra selezionata non ha ancora calciatori assegnati nella sua rosa all\'asta.' 
-                      : 'Nessun calciatore trovato con la combinazione di ruolo, squadra o parametri impostati.'}
-                  </p>
-                  <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+
+                  <div className="space-y-1.5">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">
+                      {filter.assegnazioneLega && filter.assegnazioneLega !== 'Tutti'
+                        ? (() => {
+                            const team = leagueTeams.find((t) => t.id === filter.assegnazioneLega);
+                            return team 
+                              ? `Rosa di "${team.nome}" attualmente vuota`
+                              : 'Nessun calciatore assegnato a questa squadra';
+                          })()
+                        : 'Nessun calciatore corrisponde ai filtri selezionati'}
+                    </h3>
+                    
+                    <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                      {filter.assegnazioneLega && filter.assegnazioneLega !== 'Tutti'
+                        ? (() => {
+                            const team = leagueTeams.find((t) => t.id === filter.assegnazioneLega);
+                            return `${team ? team.nome : 'Questa squadra'} non ha ancora acquistato nessun calciatore (0/25 giocatori in rosa). Assegna i giocatori dalla lista per vederli qui.`;
+                          })()
+                        : 'Nessun calciatore trovato con la combinazione di ruolo, squadra o parametri impostati.'}
+                    </p>
+                  </div>
+
+                  {/* Action buttons: Torna alla schermata precedente & Mostra tutti */}
+                  <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
                     <button
                       onClick={() => {
+                        if (previousFilter) {
+                          setFilter(previousFilter);
+                          setPreviousFilter(null);
+                        } else {
+                          setFilter((prev) => ({ ...prev, assegnazioneLega: 'Tutti', squadra: 'Tutte' }));
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center space-x-2 active:scale-95"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>⬅️ TORNA ALLA SCHERMATA PRECEDENTE</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setPreviousFilter(null);
                         setFilter(DEFAULT_FILTER);
                         setActiveRole('TUTTI');
                       }}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm cursor-pointer active:scale-95"
+                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs sm:text-sm transition-all border border-slate-300 cursor-pointer active:scale-95"
                     >
                       Mostra Tutti i {basePlayersList.length} Calciatori
                     </button>

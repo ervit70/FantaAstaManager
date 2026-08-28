@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LeagueWorkspace, DEFAULT_TAB_COLORS, createDefaultLeague, Player } from '../types/fantacalcio';
+import { exportLeagueAuctionToExcel } from '../utils/excelExporter';
 import {
   FileSpreadsheet,
   Plus,
@@ -16,7 +17,8 @@ import {
   Trophy,
   Coins,
   Layers,
-  Hash
+  Hash,
+  Download
 } from 'lucide-react';
 
 interface ExcelLeagueTabsProps {
@@ -260,6 +262,25 @@ export const ExcelLeagueTabs: React.FC<ExcelLeagueTabsProps> = ({
                         ))}
                       </div>
                     </div>
+
+                    {/* Export League Auction to Excel */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exportLeagueAuctionToExcel({
+                          teams: league.teams,
+                          allPlayers,
+                          playerAssignments: league.playerAssignments,
+                          playerPrices: league.playerPrices,
+                          leagueName: league.nome,
+                        });
+                        setActiveMenuLeagueId(null);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-emerald-50 text-emerald-900 flex items-center space-x-2 font-bold cursor-pointer border-t border-slate-100"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Scarica Excel Asta (Squadre & Prezzi)</span>
+                    </button>
 
                     {/* Duplicate */}
                     <button

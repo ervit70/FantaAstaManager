@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { LeagueTeam, Player } from '../types/fantacalcio';
-import { Coins, ChevronDown, ChevronUp, Trophy, Settings } from 'lucide-react';
+import { Coins, ChevronDown, ChevronUp, Trophy, Settings, Download, FileSpreadsheet } from 'lucide-react';
+import { exportLeagueAuctionToExcel } from '../utils/excelExporter';
 
 interface LiveAuctionBudgetBarProps {
   teams: LeagueTeam[];
@@ -93,6 +94,25 @@ export const LiveAuctionBudgetBar: React.FC<LiveAuctionBudgetBarProps> = ({
         <div className="flex items-center space-x-1 shrink-0">
           <button
             type="button"
+            onClick={() =>
+              exportLeagueAuctionToExcel({
+                teams,
+                allPlayers,
+                playerAssignments,
+                playerPrices,
+                leagueName: 'Lega_Fantacalcio',
+              })
+            }
+            className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 shadow-2xs transition-colors cursor-pointer"
+            title="Scarica tutte le squadre in Excel (Col 1 vuota, Col 2 Squadra 1, Col 3 Prezzo d'acquisto, Col 4 Squadra 2, etc.)"
+          >
+            <Download className="w-2.5 h-2.5 text-emerald-200" />
+            <span className="hidden sm:inline">Scarica Excel Asta</span>
+            <span className="sm:hidden">Excel</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenRegistry}
             className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
             title={`Modifica il budget iniziale e i nomi delle ${teams.length} squadre`}
@@ -145,40 +165,40 @@ export const LiveAuctionBudgetBar: React.FC<LiveAuctionBudgetBarProps> = ({
                   key={team.id}
                   onClick={() => onSelectTeamFilter(isSelected ? 'Tutti' : team.id)}
                   title={`Clicca per filtrare i giocatori di ${team.nome} (Iniziale: ${budgetInit} FM • Spesi: ${spent} FM • Residuo: ${remaining} FM • Giocatori: ${count}/25)`}
-                  style={{ minWidth: '120px', width: '120px', maxWidth: '120px', flexShrink: 0 }}
-                  className={`rounded-md p-1.5 border transition-all cursor-pointer select-none flex flex-col justify-between shrink-0 ${
+                  style={{ minWidth: '150px', flexShrink: 0 }}
+                  className={`rounded-lg p-2 border transition-all cursor-pointer select-none flex flex-col justify-between shrink-0 ${
                     isSelected
                       ? 'bg-blue-900/90 border-blue-400 shadow-md ring-2 ring-blue-400'
-                      : 'bg-slate-800/90 border-slate-700/90 hover:border-slate-500 hover:bg-slate-800'
+                      : 'bg-slate-800/90 border-slate-750 hover:border-slate-500 hover:bg-slate-800'
                   }`}
                 >
-                  {/* Top line: Number + Name + Count */}
-                  <div className="flex items-center justify-between space-x-1 min-w-0 leading-tight">
-                    <div className="flex items-center space-x-1 min-w-0 truncate">
+                  {/* Top line: Team Badge + Full Name + Count */}
+                  <div className="flex items-center justify-between gap-1.5 min-w-0 leading-tight">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span
-                        className="w-3.5 h-3.5 rounded text-white font-mono font-bold text-[8.5px] flex items-center justify-center shrink-0"
+                        className="w-4 h-4 rounded text-white font-mono font-bold text-[9px] flex items-center justify-center shrink-0 shadow-xs"
                         style={{ backgroundColor: team.coloreHex || '#2563eb' }}
                       >
                         {team.numero || idx + 1}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-100 truncate">
+                      <span className="text-[11px] font-bold text-slate-100 whitespace-nowrap overflow-hidden text-ellipsis" title={team.nome}>
                         {team.nome}
                       </span>
                     </div>
-                    <span className="text-[8.5px] font-mono text-slate-400 shrink-0">
+                    <span className="text-[9px] font-mono font-semibold text-slate-400 shrink-0 bg-slate-950/60 px-1 py-0.5 rounded">
                       {count}/25
                     </span>
                   </div>
 
-                  {/* Bottom line: High visibility remaining budget */}
-                  <div className="mt-1 flex items-center justify-between gap-1">
-                    <div className={`px-1.5 py-0.5 rounded border flex items-baseline space-x-0.5 font-mono font-black text-[11px] leading-tight ${badgeStyle}`}>
+                  {/* Bottom line: High visibility remaining budget + Spent */}
+                  <div className="mt-1.5 flex items-center justify-between gap-1.5">
+                    <div className={`px-2 py-0.5 rounded-md border flex items-baseline space-x-0.5 font-mono font-black text-xs leading-tight shadow-xs ${badgeStyle}`}>
                       <span>{remaining}</span>
-                      <span className="text-[8px] font-normal opacity-85">FM</span>
+                      <span className="text-[8.5px] font-normal opacity-85">FM</span>
                     </div>
 
-                    <span className="text-[8.5px] font-mono text-slate-400 truncate" title={`Spesi: ${spent} FM`}>
-                      {spent > 0 ? `-${spent}` : '0'}
+                    <span className="text-[9.5px] font-mono font-medium text-slate-400 whitespace-nowrap" title={`Spesi: ${spent} FM`}>
+                      {spent > 0 ? `Spesi: ${spent}` : 'Spesi: 0'}
                     </span>
                   </div>
                 </div>
