@@ -29,7 +29,13 @@ import { UserManualModal } from './components/UserManualModal';
 import { PurchaseLicenseModal } from './components/PurchaseLicenseModal';
 import { LicenseStatus, loadStoredLicense, saveStoredLicense, getTrustedServerTime, SEASON_EXPIRY_DATE_ISO, calculateRemainingDays } from './services/licenseService';
 import { subscribeToCloudLeagueState, saveCloudLeagueState, CloudLeagueState } from './firebase';
-import { Upload, FileSpreadsheet, RotateCcw } from 'lucide-react';
+import {
+  persistFullLocalBackup,
+  calculateTotalAssignments,
+  calculateTotalCreditsSpent
+} from './services/backupService';
+import { SaveBackupModal } from './components/SaveBackupModal';
+import { Upload, FileSpreadsheet, RotateCcw, Save, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 const DEFAULT_FILTER: FilterState = {
   searchQuery: '',
@@ -125,6 +131,12 @@ export function App() {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessToast, setSaveSuccessToast] = useState<string | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
+    return localStorage.getItem('fantascout_last_saved_time');
+  });
 
   // License State with Server-Time Anti-Tamper Verification
   const [currentLicense, setCurrentLicense] = useState<LicenseStatus | null>(() => loadStoredLicense());
@@ -181,7 +193,7 @@ export function App() {
   const budgetBase = activeLeague.budgetBase || 500;
   const targetIds = useMemo(() => new Set(activeLeague.targetPlayerIds || []), [activeLeague.targetPlayerIds]);
 
-  // Real-time Cloud Synchronization via Firebase Firestore
+  // Real-time Cloud Synchronization via Firebase Firestore with anti-overwrite safeguard
   useEffect(() => {
     const unsubscribe = subscribeToCloudLeagueState(
       (cloudState: CloudLeagueState) => {
@@ -204,12 +216,31 @@ export function App() {
 
         // 2. Sync multi-league workspaces if available
         if (cloudState.leagues && Array.isArray(cloudState.leagues) && cloudState.leagues.length > 0) {
-          setLeagues(cloudState.leagues);
-          try {
-            localStorage.setItem('fantascout_leagues_v2', JSON.stringify(cloudState.leagues));
-          } catch (e) {
-            console.error('LocalStorage write error:', e);
-          }
+          const cloudAssignedCount = calculateTotalAssignments(cloudState.leagues);
+          
+          setLeagues((prevLeagues) => {
+            const localAssignedCount = calculateTotalAssignments(prevLeagues);
+
+            // ANTI-LOSS SAFEGUARD: If local state has assigned players but cloud payload has 0 assignments,
+            // DO NOT wipe the local state! Instead, push local state to cloud.
+            if (localAssignedCount > 0 && cloudAssignedCount === 0) {
+              console.warn('Prevented accidental cloud wipe of local assignments! Resaving local state to cloud.');
+              persistFullLocalBackup(prevLeagues, activeLeagueId, customPlayers);
+              saveCloudLeagueState({
+                leagues: prevLeagues,
+                activeLeagueId,
+                customPlayers: customPlayers || null,
+              }).catch(() => {});
+              return prevLeagues;
+            }
+
+            try {
+              localStorage.setItem('fantascout_leagues_v2', JSON.stringify(cloudState.leagues));
+            } catch (e) {
+              console.error('LocalStorage write error:', e);
+            }
+            return cloudState.leagues;
+          });
 
           if (cloudState.activeLeagueId) {
             setActiveLeagueId(cloudState.activeLeagueId);
@@ -242,7 +273,8 @@ export function App() {
         }, 100);
       },
       (error) => {
-        console.warn('Firebase cloud sync status:', error);
+        // Quota reached or offline - silent fallback to 100% LocalStorage
+        console.warn('Firebase cloud sync status:', error?.message || error);
         setIsCloudSynced(false);
       }
     );
@@ -250,15 +282,118 @@ export function App() {
     return () => unsubscribe();
   }, []);
 
+  // Browser Navigation Trap: Prevent accidental back button navigation away from the active auction
+  useEffect(() => {
+    // Push an initial entry to trap back button
+    try {
+      window.history.pushState({ app: 'fantaguida_auction' }, '', window.location.href);
+    } catch {}
+
+    const handlePopState = () => {
+      // Re-push history entry so the browser stays in the app
+      try {
+        window.history.pushState({ app: 'fantaguida_auction' }, '', window.location.href);
+      } catch {}
+
+      const totalAssigned = calculateTotalAssignments(leagues);
+      setSaveSuccessToast(
+        `🛡️ Navigazione protetta: sei nell'Asta Live (${totalAssigned} calciatori assegnati). I tuoi dati sono sempre al sicuro!`
+      );
+      setTimeout(() => setSaveSuccessToast(null), 4000);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [leagues]);
+
+  // Anti-accidental page reload / exit protection
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const totalAssigned = calculateTotalAssignments(leagues);
+      if (totalAssigned > 0) {
+        // Standard confirmation prompt for browsers
+        e.preventDefault();
+        e.returnValue = 'Hai un\'asta in corso con calciatori acquistati. Vuoi davvero uscire o ricaricare la pagina?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [leagues]);
+
+  // Manual Save Trigger (Saves to both Multi-Snapshot LocalStorage & Firestore Cloud)
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    const nowIso = new Date().toISOString();
+
+    // 1. Save in robust multi-snapshot LocalStorage
+    persistFullLocalBackup(leagues, activeLeagueId, customPlayers);
+    setLastSavedTime(nowIso);
+
+    // 2. Save in Firestore Cloud
+    try {
+      await saveCloudLeagueState(
+        {
+          leagues,
+          activeLeagueId,
+          customPlayers: customPlayers || null,
+        },
+        true
+      );
+      setIsCloudSynced(true);
+    } catch (err) {
+      console.warn('Cloud sync save status:', err);
+    } finally {
+      setIsSaving(false);
+    }
+
+    const assignedCount = calculateTotalAssignments(leagues);
+    setSaveSuccessToast(
+      `✅ Salvataggio completato con successo! (${assignedCount} acquisti salvati nel browser e nel cloud)`
+    );
+    setTimeout(() => setSaveSuccessToast(null), 4000);
+  };
+
+  // Restore State from backup file or snapshot
+  const handleRestoreState = (
+    restoredLeagues: LeagueWorkspace[],
+    restoredActiveId: string,
+    restoredCustomPlayers?: Player[] | null
+  ) => {
+    setLeagues(restoredLeagues);
+    setActiveLeagueId(restoredActiveId);
+
+    if (restoredCustomPlayers !== undefined) {
+      setCustomPlayers(restoredCustomPlayers);
+      if (restoredCustomPlayers) {
+        try {
+          localStorage.setItem('fantascout_custom_players_2627', JSON.stringify(restoredCustomPlayers));
+        } catch (e) {}
+      } else {
+        localStorage.removeItem('fantascout_custom_players_2627');
+      }
+    }
+
+    persistFullLocalBackup(restoredLeagues, restoredActiveId, restoredCustomPlayers ?? customPlayers);
+    saveCloudLeagueState(
+      {
+        leagues: restoredLeagues,
+        activeLeagueId: restoredActiveId,
+        customPlayers: restoredCustomPlayers ?? customPlayers ?? null,
+      },
+      true
+    ).catch(() => {});
+
+    const nowIso = new Date().toISOString();
+    setLastSavedTime(nowIso);
+  };
+
   // Helper to persist leagues updates locally and to Firestore Cloud
   const persistLeagues = (updatedLeagues: LeagueWorkspace[], activeId = activeLeagueId) => {
     setLeagues(updatedLeagues);
-    try {
-      localStorage.setItem('fantascout_leagues_v2', JSON.stringify(updatedLeagues));
-      localStorage.setItem('fantascout_active_league_id', activeId);
-    } catch (e) {
-      console.error('Failed to persist leagues to LocalStorage', e);
-    }
+    
+    // Infallible immediate synchronous multi-snapshot LocalStorage write
+    persistFullLocalBackup(updatedLeagues, activeId, customPlayers);
 
     // Find current active league to save legacy keys as fallback
     const active = updatedLeagues.find((l) => l.id === activeId) || updatedLeagues[0];
@@ -271,6 +406,7 @@ export function App() {
       } catch (e) {}
     }
 
+    // Debounced Cloud sync to protect quota limits
     saveCloudLeagueState({
       leagues: updatedLeagues,
       activeLeagueId: activeId,
@@ -280,7 +416,7 @@ export function App() {
       playerPrices: active?.playerPrices,
       targetPlayerIds: active?.targetPlayerIds,
       budgetBase: active?.budgetBase,
-    }).catch((e) => console.warn('Cloud sync error', e));
+    }).catch((e) => console.warn('Cloud sync debounced error:', e));
   };
 
   // --- MULTI-LEAGUE SHEET HANDLERS ---
@@ -845,6 +981,10 @@ export function App() {
           onOpenManual={() => setIsManualOpen(true)}
           onOpenLicenseModal={() => setIsLicenseModalOpen(true)}
           currentLicense={currentLicense}
+          onManualSave={handleManualSave}
+          onOpenSaveModal={() => setIsSaveModalOpen(true)}
+          isSaving={isSaving}
+          lastSavedTime={lastSavedTime}
         />
 
         {/* EXCEL MULTI-LEAGUE WORKSPACE TABS BAR */}
@@ -862,7 +1002,7 @@ export function App() {
         />
 
         {/* Live Auction Budget Ribbon for the active league's 10 teams + Role/Filter */}
-        <div className="max-w-[1700px] w-full mx-auto px-1.5 sm:px-3 pt-0.5 sm:pt-1 pb-0.5 sm:pb-1">
+        <div className="max-w-[1700px] w-full mx-auto px-1.5 sm:px-3 pt-0.5 sm:pt-1 pb-0.5">
           <LiveAuctionBudgetBar
             teams={leagueTeams}
             playerAssignments={playerAssignments}
@@ -875,21 +1015,17 @@ export function App() {
             }}
             onOpenRegistry={() => setIsRegistryModalOpen(true)}
             onOpenSquads={() => setIsSquadsModalOpen(true)}
+            activeRole={activeRole}
+            onSelectRole={(r) => handleRoleSelect(r)}
+            onOpenExcelModal={() => setIsExcelModalOpen(true)}
+            onManualSave={handleManualSave}
+            onOpenSaveModal={() => setIsSaveModalOpen(true)}
+            isSaving={isSaving}
           />
 
           {activeRole !== 'PLANNER' && (
-            <div className="mt-0.5 sm:mt-1 space-y-0.5 sm:space-y-1">
-              {/* Hero role context banner (accessible on all screen sizes) */}
-              <div className="block">
-                <RoleHeroBanner
-                  activeRole={activeRole}
-                  onSelectRole={(r) => handleRoleSelect(r)}
-                  players={basePlayersList}
-                  onOpenExcelModal={() => setIsExcelModalOpen(true)}
-                />
-              </div>
-
-              {/* Filter toolbar */}
+            <div className="mt-0.5 sm:mt-1">
+              {/* Ultra-slim single-line Filter toolbar */}
               <FilterBar
                 filter={filter}
                 onChangeFilter={(newF) => {
@@ -907,6 +1043,7 @@ export function App() {
                 totalFilteredCount={filteredPlayers.length}
                 availableTeams={availableTeams}
                 leagueTeams={leagueTeams}
+                allPlayers={basePlayersList}
               />
             </div>
           )}
@@ -1175,6 +1312,31 @@ export function App() {
         gumroadUrl={gumroadUrl}
         onUpdateGumroadUrl={handleUpdateGumroadUrl}
       />
+
+      {/* Save & Backup Safety Modal */}
+      <SaveBackupModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        leagues={leagues}
+        activeLeagueId={activeLeagueId}
+        customPlayers={customPlayers}
+        lastSavedTime={lastSavedTime}
+        onManualSave={handleManualSave}
+        onRestoreState={handleRestoreState}
+      />
+
+      {/* Global Save Success Floating Notification */}
+      {saveSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl border-2 border-emerald-500 shadow-2xl flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+          </div>
+          <div className="text-xs">
+            <div className="font-black text-emerald-400">SALVATAGGIO RIUSCITO</div>
+            <div className="text-slate-300 font-medium">{saveSuccessToast}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

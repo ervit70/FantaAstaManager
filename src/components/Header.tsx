@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { Role } from '../types/fantacalcio';
-import { Users, DollarSign, Compass, FileSpreadsheet, Trophy, Settings, Menu, X, BookOpen, ShoppingBag, ShieldCheck } from 'lucide-react';
+import {
+  Users,
+  DollarSign,
+  Compass,
+  FileSpreadsheet,
+  Trophy,
+  Settings,
+  Menu,
+  X,
+  BookOpen,
+  ShoppingBag,
+  ShieldCheck,
+  Save,
+  Check,
+  HardDrive
+} from 'lucide-react';
 import { LicenseStatus } from '../services/licenseService';
 
 interface HeaderProps {
@@ -23,6 +38,10 @@ interface HeaderProps {
   onOpenManual: () => void;
   onOpenLicenseModal: () => void;
   currentLicense: LicenseStatus | null;
+  onManualSave?: () => void;
+  onOpenSaveModal?: () => void;
+  isSaving?: boolean;
+  lastSavedTime?: string | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,8 +63,22 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenManual,
   onOpenLicenseModal,
   currentLicense,
+  onManualSave,
+  onOpenSaveModal,
+  isSaving = false,
+  lastSavedTime,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onManualSave) {
+      onManualSave();
+      setShowSavedFeedback(true);
+      setTimeout(() => setShowSavedFeedback(false), 2500);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-[#0b172a] text-white border-b-2 border-blue-600 shadow-md shrink-0">
@@ -158,6 +191,49 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right: Primary Actions Zone (Guaranteed to always fit and never clip) */}
           <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
+            {/* SALVA ASTA & BACKUP Buttons - High Visibility & Direct Persistence */}
+            <div className="flex items-center space-x-1 shrink-0">
+              <button
+                onClick={handleSaveClick}
+                disabled={isSaving}
+                title={
+                  lastSavedTime
+                    ? `Salva subito tutti gli acquisti nel browser e nel cloud (Ultimo salvataggio: ${new Date(lastSavedTime).toLocaleTimeString('it-IT')})`
+                    : 'Salva subito tutti gli acquisti, squadre e crediti nel browser e nel cloud'
+                }
+                className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer ring-1 ring-emerald-300 shrink-0 ${
+                  showSavedFeedback
+                    ? 'bg-emerald-400 text-slate-950 ring-2 ring-white scale-105'
+                    : isSaving
+                    ? 'bg-emerald-700 text-emerald-200 animate-pulse'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                }`}
+              >
+                {showSavedFeedback ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 stroke-[3] text-slate-950" />
+                    <span>SALVATO!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                    <span>SALVA</span>
+                  </>
+                )}
+              </button>
+
+              {onOpenSaveModal && (
+                <button
+                  onClick={onOpenSaveModal}
+                  title="Gestione Backup, Cronologia Salvataggi e Download File JSON"
+                  className="flex items-center space-x-1 px-1.5 sm:px-2 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-400 hover:text-emerald-300 rounded-md border border-emerald-500/40 text-[10px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="hidden sm:inline">Backup</span>
+                </button>
+              )}
+            </div>
+
             {/* Licenza / Acquisto Button */}
             <button
               onClick={onOpenLicenseModal}
@@ -328,6 +404,29 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Action Tools */}
           <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-800">
+            <button
+              onClick={(e) => {
+                handleSaveClick(e);
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-center space-x-1.5 py-1.5 bg-emerald-500 text-slate-950 rounded font-black border border-emerald-400 col-span-2 shadow-md"
+            >
+              <Save className="w-4 h-4 fill-slate-950" />
+              <span>💾 SALVA TUTTI GLI ACQUISTI</span>
+            </button>
+
+            {onOpenSaveModal && (
+              <button
+                onClick={() => {
+                  onOpenSaveModal();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center space-x-1.5 py-1.5 bg-slate-800 text-emerald-400 border border-slate-700 rounded font-bold col-span-2"
+              >
+                <span>⚙️ Gestione Backup & Cronologia</span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 onOpenLicenseModal();
