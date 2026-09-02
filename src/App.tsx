@@ -35,7 +35,8 @@ import {
   calculateTotalCreditsSpent
 } from './services/backupService';
 import { SaveBackupModal } from './components/SaveBackupModal';
-import { Upload, FileSpreadsheet, RotateCcw, Save, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { UnassignConfirmModal, UnassignPendingTarget } from './components/UnassignConfirmModal';
+import { Upload, FileSpreadsheet, RotateCcw, Save, CheckCircle2, ShieldCheck, AlertTriangle, Undo2 } from 'lucide-react';
 
 const DEFAULT_FILTER: FilterState = {
   searchQuery: '',
@@ -134,6 +135,14 @@ export function App() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessToast, setSaveSuccessToast] = useState<string | null>(null);
+  const [unassignPendingTarget, setUnassignPendingTarget] = useState<UnassignPendingTarget | null>(null);
+  const [undoUnassignAction, setUndoUnassignAction] = useState<{
+    playerId: string;
+    teamId: string;
+    price: number;
+    playerName: string;
+    teamName: string;
+  } | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
     return localStorage.getItem('fantascout_last_saved_time');
   });
@@ -511,12 +520,90 @@ export function App() {
     const currentPrices = { ...(activeLeague.playerPrices || {}) };
 
     if (!teamId) {
-      // Unassigned / Libero: remove assignment and reset auction price to restore initial budget
-      delete currentAssignments[playerId];
-      delete currentPrices[playerId];
-    } else {
-      // Assigned to a team (if moved from Team A to Team B, price stays attached to player and is now deducted from Team B while restoring Team A)
-      currentAssignments[playerId] = teamId;
+      // If the player is currently assigned, trigger a safety confirmation warning modal before wiping!
+      if (currentAssignments[playerId]) {
+        const assignedTeamId = currentAssignments[playerId];
+        const team = (activeLeague.teams || []).find((t) => t.id === assignedTeamId);
+        const player = basePlayersList.find((p) => p.id === playerId);
+        const paidPrice = currentPrices[playerId] ?? 0;
+
+        setUnassignPendingTarget({
+          playerId,
+          playerName: player?.nome || 'Calciatore',
+          playerRole: player?.ruolo || 'C',
+          playerTeamSerieA: player?.squadra || '',
+          teamId: assignedTeamId,
+          teamName: team?.nome || `Squadra ${assignedTeamId}`,
+          paidPrice,
+        });
+        return;
+      }
+      // If already not assigned, do nothing
+      return;
+    }
+
+    // Assigned to a team (if moved from Team A to Team B, price stays attached and is now deducted from Team B while restoring Team A)
+    currentAssignments[playerId] = teamId;
+
+    const nextLeagues = leagues.map((l) =>
+      l.id === activeLeague.id
+        ? {
+            ...l,
+            playerAssignments: currentAssignments,
+            playerPrices: currentPrices,
+            updatedAt: new Date().toISOString(),
+          }
+        : l
+    );
+    persistLeagues(nextLeagues);
+  };
+
+  const handleConfirmUnassign = () => {
+    if (!unassignPendingTarget) return;
+    const { playerId, teamId, paidPrice, playerName, teamName } = unassignPendingTarget;
+
+    const currentAssignments = { ...(activeLeague.playerAssignments || {}) };
+    const currentPrices = { ...(activeLeague.playerPrices || {}) };
+
+    delete currentAssignments[playerId];
+    delete currentPrices[playerId];
+
+    const nextLeagues = leagues.map((l) =>
+      l.id === activeLeague.id
+        ? {
+            ...l,
+            playerAssignments: currentAssignments,
+            playerPrices: currentPrices,
+            updatedAt: new Date().toISOString(),
+          }
+        : l
+    );
+    persistLeagues(nextLeagues);
+    setUnassignPendingTarget(null);
+
+    // Set undo action for 10 seconds with high visibility floating toast
+    setUndoUnassignAction({
+      playerId,
+      teamId,
+      price: paidPrice,
+      playerName,
+      teamName,
+    });
+    setTimeout(() => {
+      setUndoUnassignAction((prev) => (prev?.playerId === playerId ? null : prev));
+    }, 10000);
+  };
+
+  const handleUndoUnassign = () => {
+    if (!undoUnassignAction) return;
+    const { playerId, teamId, price, playerName, teamName } = undoUnassignAction;
+
+    const currentAssignments = { ...(activeLeague.playerAssignments || {}) };
+    const currentPrices = { ...(activeLeague.playerPrices || {}) };
+
+    currentAssignments[playerId] = teamId;
+    if (price > 0) {
+      currentPrices[playerId] = price;
     }
 
     const nextLeagues = leagues.map((l) =>
@@ -530,6 +617,10 @@ export function App() {
         : l
     );
     persistLeagues(nextLeagues);
+    setUndoUnassignAction(null);
+
+    setSaveSuccessToast(`✓ Ripristinato ${playerName} a ${teamName} con ${price} FM`);
+    setTimeout(() => setSaveSuccessToast(null), 3500);
   };
 
   const handleBatchReleasePlayers = (playerIds: string[]) => {
@@ -1324,6 +1415,39 @@ export function App() {
         onManualSave={handleManualSave}
         onRestoreState={handleRestoreState}
       />
+
+      {/* Safety Confirmation Modal: Prevent Accidental Release of Purchased Players */}
+      <UnassignConfirmModal
+        isOpen={Boolean(unassignPendingTarget)}
+        target={unassignPendingTarget}
+        onClose={() => setUnassignPendingTarget(null)}
+        onConfirm={handleConfirmUnassign}
+      />
+
+      {/* Instant Undo Toast for Player Release */}
+      {undoUnassignAction && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-white px-4 py-3 rounded-2xl border-2 border-amber-400 shadow-2xl flex items-center space-x-3.5 animate-in fade-in slide-in-from-bottom-5 duration-200 max-w-md w-[92%] sm:w-auto">
+          <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0">
+            <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <div className="text-xs flex-1 min-w-0">
+            <div className="font-bold text-amber-300 truncate">
+              Calciatore svincolato: <span className="text-white font-black">{undoUnassignAction.playerName}</span>
+            </div>
+            <div className="text-[11px] text-slate-400 truncate">
+              Era di {undoUnassignAction.teamName} ({undoUnassignAction.price} FM rimborsati)
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleUndoUnassign}
+            className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 text-xs font-black rounded-lg shadow-md transition-all cursor-pointer flex items-center space-x-1 shrink-0"
+          >
+            <Undo2 className="w-3.5 h-3.5 stroke-[3]" />
+            <span>ANNULLA</span>
+          </button>
+        </div>
+      )}
 
       {/* Global Save Success Floating Notification */}
       {saveSuccessToast && (
